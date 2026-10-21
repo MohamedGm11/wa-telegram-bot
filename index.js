@@ -44,29 +44,41 @@ client.on("ready", () => {
   console.log("تم الربط! البوت يراقب القناة الآن...");
 });
 
-client.on("message", async (msg) => {
-  try {
-    const chat = await msg.getChat();
+// غيرنا الكلمة هنا من message إلى message_create
+client.on('message_create', async (msg) => {
+    try {
+        const chat = await msg.getChat();
+        
+        // هذا السطر مهم جداً للـ Debugging:
+        // سيطبع اسم أي دردشة توصلها رسالة في سجلات رندر عشان تتأكد من الاسم البرمجي
+        console.log(`[مراقبة] رسالة في: "${chat.name}"`);
 
-    if (chat.name === TARGET_CHANNEL_NAME && msg.body) {
-      const textToSend = `رسالة جديدة:\n\n${msg.body}`;
+        // التحقق من الاسم وإرسالها
+        if (chat.name === TARGET_CHANNEL_NAME && msg.body) {
+            console.log('جاري إرسال الرسالة لتلجرام...');
+            
+            const textToSend = `رسالة جديدة:\n\n${msg.body}`;
+            
+            const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: TELEGRAM_CHAT_ID,
+                    text: textToSend
+                })
+            });
 
-      await fetch(
-        `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id: TELEGRAM_CHAT_ID,
-            text: textToSend,
-          }),
-        },
-      );
-      console.log("تم تحويل رسالة بنجاح!");
+            const result = await response.json();
+            if(result.ok) {
+                console.log('✅ تم تحويل رسالة بنجاح!');
+            } else {
+                console.error('❌ خطأ من تلجرام:', result.description);
+            }
+        }
+    } catch (error) {
+        console.error('⚠️ خطأ برمجي:', error);
     }
-  } catch (error) {
-    console.error("خطأ:", error);
-  }
+});
 });
 
 client.initialize();
