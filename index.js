@@ -2,30 +2,33 @@ const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 const fetch = require("node-fetch");
 
+// ضع التوكن ورقم المجموعة واسم القناة هنا
+const TELEGRAM_BOT_TOKEN = "8997117325:AAEbJU-Pu63s5WChYeKT2SVf6cuxoU63Dck";
+const TELEGRAM_CHAT_ID = "-1004384489208";
+const TARGET_CHANNEL_NAME = "Now Exchange";
+
 const client = new Client({
   authStrategy: new LocalAuth({ dataPath: "./whatsapp-session" }),
-  puppeteer: {
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  },
+  puppeteer: { args: ["--no-sandbox", "--disable-setuid-sandbox"] },
 });
 
-const TELEGRAM_BOT_TOKEN = "ضع_توكن_البوت_هنا";
-const TELEGRAM_CHAT_ID = "ضع_آي_دي_المجموعة_هنا";
-
 client.on("qr", (qr) => {
-  console.log("امسح كود الـ QR التالي من لوحة تحكم Render (Logs):");
+  console.log("افتح واتساب في تليفونك وامسح هذا الكود (زي واتساب ويب):");
   qrcode.generate(qr, { small: true });
 });
 
 client.on("ready", () => {
-  console.log("متصل بنجاح وجاهز لمراقبة رسائل الواتساب!");
+  console.log("تم الربط! البوت يراقب القناة الآن...");
 });
 
 client.on("message", async (msg) => {
-  if (msg.body) {
-    const textToSend = `رسالة جديدة من القناة:\n\n${msg.body}`;
+  try {
+    const chat = await msg.getChat();
 
-    try {
+    // إذا كان اسم المحادثة يطابق اسم القناة، ابعث الرسالة لتلجرام
+    if (chat.name === TARGET_CHANNEL_NAME && msg.body) {
+      const textToSend = `رسالة جديدة:\n\n${msg.body}`;
+
       await fetch(
         `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
         {
@@ -37,9 +40,10 @@ client.on("message", async (msg) => {
           }),
         },
       );
-    } catch (error) {
-      console.error("خطأ في إرسال الرسالة لتلجررام:", error);
+      console.log("تم تحويل رسالة بنجاح!");
     }
+  } catch (error) {
+    console.error("خطأ:", error);
   }
 });
 
